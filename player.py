@@ -1,3 +1,5 @@
+import deck
+
 class Player:
     """ Represents a player in the game
     
@@ -19,9 +21,10 @@ class Player:
         self.initialize_hand()
     
     def initialize_hand(self): #TODO add card sorting criteria based on color/number/type
-        """ Gives the Player their initial hand of random cards
-        """
-        pass
+        initialHandSize = 5
+        for _ in range(initialHandSize):
+            self.cards.append(deck.Deck.newCard())
+        
 
     def get_card(self):
         pass
@@ -32,7 +35,8 @@ class Player:
     def __str__(self):
         print("Here are your " + str(len(self.cards)) + " cards:")
         #TODO make this pretty
-
+        returnString = ""
         for i in range(len(self.cards)):
-            print(str(i) + ": " + str(self.card))
-            print()
+            returnString += str(i) + ":\n " + str(self.cards[i]) + "\n"
+        
+        return returnString
