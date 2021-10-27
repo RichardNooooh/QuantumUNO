@@ -1,24 +1,42 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
 from qiskit.visualization import plot_histogram, plot_state_qsphere, plot_bloch_multivector, plot_bloch_vector
 from enum import Enum, auto
+from player import Player
+from quno import Game
 import numpy as np
+
+
 class Color(Enum):
     """ Represents the color of the card
     """
-    RED     = 0
-    BLUE    = 1
-    YELLOW  = 2
-    GREEN   = 3
+    RED     = 0     # 00
+    BLUE    = 1     # 01
+    YELLOW  = 2     # 10
+    GREEN   = 3     # 11
+
 class Type(Enum):
     """ Represents the type of the card
+
+    We encode the type with five qubits.
+
     """
+    # Standard Normal Number Cards
+    NUM_ONE         = 0      # 00000
+    NUM_TWO         = 1      # 00001
+    NUM_THREE       = 2      # 00010
+    NUM_FOUR        = 3      # 00011
+    NUM_FIVE        = 4      # 00100
+    NUM_SIX         = 5      # 00101
+    NUM_SEVEN       = 6      # 00110
+    NUM_EIGHT       = 7      # 00111
+    NUM_NINE        = 8      # 01000
+    
     # Special Quantum Cards
-    NORMAL = 0
-    MAKE_ENTANGLED  = 1
-    ENTANGLED       = 2
-    INTERFERENCE    = 3
-    #WILD = 4 
-    #TODO should wild be a card? or is it more of a concept?
+    MAKE_ENTANGLED  = 16     # 10000
+    ENTANGLED       = 17     # 10001
+    INTERFERENCE    = 18     # 10010
+
+
 class Card:
     """ Represents a card in the game
     Attributes

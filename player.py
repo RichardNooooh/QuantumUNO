@@ -29,10 +29,10 @@ class Player:
     def play_card(self, index):
         pass
 
-    def print_hand(self):
+    def __str__(self):
         print("Here are your " + str(len(self.cards)) + " cards:")
         #TODO make this pretty
 
         for i in range(len(self.cards)):
-            print(str(i) + ": " + str(card))
+            print(str(i) + ": " + str(self.card))
             print()

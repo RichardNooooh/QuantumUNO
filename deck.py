@@ -27,7 +27,7 @@ class Deck:
 
         #TODO what to do for types? a little confused on len > 1 thing
         knownTypes = []
-        type = random.randint(0, 9)
+        type = randint(0, 9)
         if type == Type.NUMBER.value:
             knownTypes.append(Type.NUMBER)
         elif type == Type.SKIP.value:
