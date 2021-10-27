@@ -46,16 +46,8 @@ class Card:
     """ Represents a card in the game
     Attributes
     ----------------
-    qColorRegister : QuantumRegister
-        A 2-qubit register that represents the color of the card.
-    qTypeRegister : QuantumRegister
-        A 4-qubit register taht represents the type of the card.
-    cColorRegister : ClassicalRegister
-        A 2-bit register that measures the color of the card.
-    cTypeRegister : ClassicalRegister
-        A 4-bit register that measures the type of the card.
     qc : QuantumCircuit
-        The 6-qubit circuit that represents the underlying color and type of the
+        The 7-qubit circuit that represents the underlying color and type of the
         card.
     
     wasMeasured : bool
@@ -71,6 +63,35 @@ class Card:
         The length of knownType must be the same as the length of knownColor.
     """
 
+    @classmethod
+    def multiFlip(self, qc, q_controls, q_target): #TODO documentation; copied directly from multiplication.ipynb
+        # multi-qubit Toffoli: applies a flip (NOT gate) to the target if all controls are 1
+        # qc is a quantum circuit
+        # q_controls is the quantum register of the controlling qubits
+        # q_target is the quantum register of the target qubit
+        qc.h(q_target)
+        Card.multiPhase(qc, q_controls+[q_target], np.pi)
+        qc.h(q_target)
+
+
+    @classmethod
+    def multiPhase(self, qc, q, theta):
+        # multi-qubit controlled phase: applies a phase factor exp(i*theta) if all the qubits are 1.
+        # qc is a quantum circuit
+        # q is a quantum register in qc
+        # theta is a float
+        if len(q) == 1:
+            qc.u1(theta, q[0])
+        elif len(q) == 2:
+            qc.cu1(theta, q[0], q[1])
+        else:
+            qc.cu1(theta/2, q[1], q[0])        
+            Card.multiFlip(qc, q[2:], q[1])
+            qc.cu1(-theta/2, q[1], q[0])
+            Card.multiFlip(qc, q[2:], q[1])
+            Card.multiPhase(qc, [q[0]]+q[2:], theta/2)
+
+
     def initialize_qc(self):
         """ Initializes the internal quantum circuit to the knownColors/knownTypes
         
@@ -81,7 +102,19 @@ class Card:
         of the color and type of the card state.
 
         """
-        pass #TODO 
+        n = len(self.knownColor)
+        for i in range(n):
+            stateColor = self.knownColor[i]
+            stateType = self.knownType[i]
+            stateBinaryStr = np.binary_repr(stateColor.value, width=2) + np.binary_repr(stateType.value, width=4)
+            xGateIndices = []
+            for j in range(len(stateBinaryStr)):
+                if stateBinaryStr[j] == '1':
+                    xGateIndices.append(j)
+            
+            self.qc.x(xGateIndices)
+            Card.multiFlip((self.qc), (self.qc.qubits[1:]), (self.qc.qubits[0]))
+            self.qc.x(xGateIndices)
 
 
     def __init__(self, colors, types, isEntangled=False): #TODO allow for an empty constructor for Entangled cards
@@ -98,14 +131,12 @@ class Card:
               "ERROR in Card.__init__() - The length of 'colors' and 'types' must be greater than 0."
         
         # Quantum properties
-        self.qColorRegister = QuantumRegister(2)
-        self.qTypeRegister = QuantumRegister(4)
-        self.cColorRegister = ClassicalRegister(2)
-        self.cTypeRegister = ClassicalRegister(4)
-        self.qc = QuantumCircuit(self.qColorRegister,
-                                 self.qTypeRegister,
-                                 self.cColorRegister,
-                                 self.cTypeRegister)
+        # self.qOutputRegister = QuantumRegister(1)
+        # self.qColorRegister = QuantumRegister(2)
+        # self.qTypeRegister = QuantumRegister(4)
+        # self.cColorRegister = ClassicalRegister(2)
+        # self.cTypeRegister = ClassicalRegister(4)
+        self.qc = QuantumCircuit(7, 6) # 1 output + 2 color + 4 type
         self.wasMeasured = False
 
         # Known properties
