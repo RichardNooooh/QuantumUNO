@@ -14,6 +14,7 @@ class Game:
         self.turnOrder = 1
         self.playerIndex = 0
         self.players = []
+        self.topOfPlayedPile = None
         
         self.initialize_players(numPlayers)
     
@@ -26,9 +27,11 @@ class Game:
         print("Player " + str(self.playerIndex + 1) + ", it's your turn.")
         currentPlayer = self.players[self.playerIndex]
         print(currentPlayer)
+        # TODO check that the top of played pile matches the known card fields
         cardSelectionIndex = int(input("Select a Card! (0 - " + str(len(currentPlayer.cards) - 1) + "): "))
         playedCard = currentPlayer.cards[cardSelectionIndex]
-        playedCard.measure()
+        # TODO add an exception for entangled cards
+        topOfPlayedPile = playedCard.measure()
         playedCard.action()
 
         # Check win condition

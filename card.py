@@ -3,12 +3,14 @@ from qiskit.visualization import plot_histogram, plot_state_qsphere, plot_bloch_
 from enum import Enum, auto
 
 import player, quno
-
 import numpy as np
 
 
 class Color(Enum):
     """ Represents the color of the card
+
+    We encode the color with two qubits
+
     """
     RED     = 0     # 00
     BLUE    = 1     # 01
@@ -36,7 +38,7 @@ class Type(Enum):
     MAKE_ENTANGLED  = 9      # 1000
     ADD_PHASE       = 10     # 1010
 
-    # Super Special Quantum Card
+    # "Super Special" Quantum Card
     ENTANGLED       = 11     # 1001
 
 
@@ -61,59 +63,28 @@ class Card:
         running self.action().
     knownColor : Color[]
         A list that represents the color(s) of the card that the Player knows.
-        If the length of knownColor is 0, the type must be Type.ENTANGLED.
         If the length of knownColor is 1, this card is a single-colored card.
-        If the length of knownColor is greater than 1, this card is in a superposition
-            of the known colors.
-        knownColor should directly reflect the internal state of the quantum 
-        circuit (qc).
+        If the length of knownColor is 2, this is a superposition card. The length should
+        never be larger than 2.
     knownType : Type[]
         A list that represents the type(s) of the card that the Player knows.
-        The length of knownType MUST be greater than 0.
-        If the length of knownType is 1, this card is a single-typed card.
-        If the length of knownType is greater than 1, this card is in a superposition
-            of the known colors.
+        The length of knownType must be the same as the length of knownColor.
     """
-    interferenceCount = 0
-    #TODO prints are just my notes when testing, lol. def delete later
+
     def initialize_qc(self):
         """ Initializes the internal quantum circuit to the knownColors/knownTypes
-        This method will add the appropriate gates to obtain the correct colors/types
-        """
-        if len(self.knownColor) > 1: #initially put the card in superposition. Interference cards played will continue to manipulate until measure
-            self.qc.h(self.qColorRegister[0])
-            self.qc.h(self.qColorRegister[1])
-          
-        elif len(self.knownColor) == 1:
-            print("single colored card")
-            if self.knownColor[0] == Color.BLUE:
-                print("it's blue")
-                self.qc.x(self.qColorRegister[0])
-            elif self.knownColor[0] == Color.YELLOW:
-                print("it's yellow")
-                self.qc.x(self.qColorRegister[1])
-            elif self.knownColor[0] == Color.GREEN:
-                print("it's green")
-                self.qc.x(self.qColorRegister[0])
-                self.qc.x(self.qColorRegister[1])
-            else:
-                print("it's red")
         
-        if len(self.knownType) == 1:
-            if self.knownType[0] == Type.MAKE_ENTANGLED:
-                print("it's make entangled")
-                self.qc.x(self.qTypeRegister[0])
-            elif self.knownType[0] == Type.ENTANGLED:
-                print("it's entangled")
-                self.qc.x(self.qTypeRegister[1])
-            elif self.knownType[0] == Type.ADD_PHASE:
-                print("it's interference")
-                self.qc.x(self.qTypeRegister[0])
-                self.qc.x(self.qTypeRegister[1])
-            else:
-                print("it's normal")
+        Abstractly, this circuit implements an oracle for Grover's algorithm.
+        For every card "state" (one state for a non-superposition card, two states
+        for a superposition card) we want this object to represent, we use a
+        multi-qubit Toffoli gate, filtering it out based on the bit representations
+        of the color and type of the card state.
 
-    def __init__(self, colors, types): #TODO allow for an empty constructor for Entangled cards
+        """
+        pass #TODO 
+
+
+    def __init__(self, colors, types, isEntangled=False): #TODO allow for an empty constructor for Entangled cards
         # Parameter checks
         assert type(colors) is list and type(colors[0]) is Color, \
               "ERROR in Card.__init__() - The type of 'colors' is wrong: " \
@@ -121,17 +92,16 @@ class Card:
         assert type(types) is list and type(types[0]) is Type, \
               "ERROR in Card.__init__() - The type of 'types' is wrong: " \
               + str(type(types[0])) + " instead of Type."
-        assert len(types) > 0, \
-              "ERROR in Card.__init__() - The length of 'types' must be greater than 0."
-        if len(colors) == 0:
-            assert len(types) == 1 and types[0] == Type.ENTANGLED, \
-                  "ERROR in card.__init__() - Type must be ENTANGLED if the length of colors == 0."
+        assert len(colors) == len(types), \
+              "ERROR in Card.__init__() - The length of 'colors' and 'types' must be the same."
+        assert len(colors) > 0, \
+              "ERROR in Card.__init__() - The length of 'colors' and 'types' must be greater than 0."
         
         # Quantum properties
         self.qColorRegister = QuantumRegister(2)
-        self.qTypeRegister = QuantumRegister(3)
+        self.qTypeRegister = QuantumRegister(4)
         self.cColorRegister = ClassicalRegister(2)
-        self.cTypeRegister = ClassicalRegister(3)
+        self.cTypeRegister = ClassicalRegister(4)
         self.qc = QuantumCircuit(self.qColorRegister,
                                  self.qTypeRegister,
                                  self.cColorRegister,
@@ -139,6 +109,7 @@ class Card:
         self.wasMeasured = False
 
         # Known properties
+        self.isEntangled = isEntangled
         self.knownColor = colors
         self.knownType = types
 
@@ -156,8 +127,7 @@ class Card:
         decimal will give us the color/type, after mapping the numbers to
         the Color and Type enums.
         If there are multiple nontrivial measurement results, pick the one that
-        had the most number of hits. The exact implementation details is up
-        to you.
+        had the most number of hits.
         Before this method returns:
             Returns a tuple (Color, Type) of the result,
             Sets the knownCard and knownType fields to the result, and
@@ -267,13 +237,3 @@ class Card:
             returnString += str(self.knownType[i]) + "\n"
 
         return returnString
-####QUESTIONS/CONCERNS I HAD (there may be more i'm forgetting but if so i forgot them lol#########
-
-#-> Is there a need to even have the circuit represent a normal card? maybe so depending on player/deck 
-#implementation, but idk
-#-> what exactly does it mean for knownTypes length to be bigger than 1? saw something about superposition of colors,
-#but how would we handle this for types (e.g. what exactly do we need to do to type if we have type length > 2?)
-#-> how to handle make entangled? bc each card is its own circuit, right? how can we entangle someone else's card if it's
-#on a diff circuit?
-#-> should wild be a card? or is it more of a concept? bc we use the length of knownColors for superposition...
-#-> I had to dip so i didn't finish/correct my logic for the interference card plis fix
