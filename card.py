@@ -1,6 +1,7 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
 from qiskit.visualization import plot_histogram, plot_state_qsphere, plot_bloch_multivector, plot_bloch_vector
 from enum import Enum, auto
+import numpy as np
 class Color(Enum):
     """ Represents the color of the card
     """
@@ -11,21 +12,13 @@ class Color(Enum):
 class Type(Enum):
     """ Represents the type of the card
     """
-
-    # Normal UNO (May or may not use these types)
-    NUMBER      = 0
-    SKIP        = 1
-    REVERSE     = 2
-    DRAW_2      = 3
-    WILD_DRAW_4 = 4
-    WILD        = 5
-
     # Special Quantum Cards
-    # SUPERPOSITION   = 6     # We can represent this card type with self.knownType[]
-    MAKE_ENTANGLED  = 6
-    ENTANGLED       = 7
-    INTERFERENCE    = 8
-    # all other card type numbers 9-15 are invalid (for now?)
+    NORMAL = 0
+    MAKE_ENTANGLED  = 1
+    ENTANGLED       = 2
+    INTERFERENCE    = 3
+    #WILD = 4 
+    #TODO should wild be a card? or is it more of a concept?
 class Card:
     """ Represents a card in the game
     Attributes
@@ -60,20 +53,13 @@ class Card:
         If the length of knownType is greater than 1, this card is in a superposition
             of the known colors.
     """
-
+    interferenceCount = 0
     #TODO prints are just my notes when testing, lol. def delete later
     def initialize_qc(self):
         """ Initializes the internal quantum circuit to the knownColors/knownTypes
         This method will add the appropriate gates to obtain the correct colors/types
         """
-        # TODO: I used hadamards for superposition, but we could use other gates
-        # instead later? but hadamards might be simplest way to do superposition
-        # (e.g. put both qubits 0 and 1 in superposition via hadamards... then measure
-        # so that results could be 00, 01, 10, or 11)... basically using Noah's idea in
-        # the piazza post
-
-        if len(self.knownColor) > 1: 
-          print("superposition here")
+        if len(self.knownColor) > 1: #initially put the card in superposition. Interference cards played will continue to manipulate until measure
           self.qc.h(self.qColorRegister[0])
           self.qc.h(self.qColorRegister[1])
           
@@ -93,41 +79,20 @@ class Card:
             print("it's red")
         
         if len(self.knownType) == 1:
-          print("single type card")
-          if self.knownType[0] == Type.SKIP:
-            print("it's skip")
-            self.qc.x(self.qTypeRegister[0])
-          elif self.knownType[0] == Type.REVERSE:
-            print("it's reverse")
-            self.qc.x(self.qTypeRegister[1])
-          elif self.knownType[0] == Type.DRAW_2:
-            print("it's draw 2")
-            self.qc.x(self.qTypeRegister[0])
-            self.qc.x(self.qTypeRegister[1])
-          elif self.knownType[0] == Type.WILD_DRAW_4:
-            print("it's wild draw 4")
-            self.qc.x(self.qTypeRegister[2])
-          elif self.knownType[0] == Type.WILD:
-            print("it's wild")
-            self.qc.x(self.qTypeRegister[0])
-            self.qc.x(self.qTypeRegister[2])
-          elif self.knownType[0] == Type.MAKE_ENTANGLED:
+          if self.knownType[0] == Type.MAKE_ENTANGLED:
             print("it's make entangled")
-            self.qc.x(self.qTypeRegister[1])
-            self.qc.x(self.qTypeRegister[2])
+            self.qc.x(self.qTypeRegister[0])
           elif self.knownType[0] == Type.ENTANGLED:
             print("it's entangled")
-            self.qc.x(self.qTypeRegiser[0])
             self.qc.x(self.qTypeRegister[1])
-            self.qc.x(self.qTypeRegister[2])
           elif self.knownType[0] == Type.INTERFERENCE:
             print("it's interference")
-            self.qc.x(self.qTypeRegister[3])
+            self.qc.x(self.qTypeRegister[0])
+            self.qc.x(self.qTypeRegister[1])
           else:
-            print("it's number")
-        else:
-          print("superposition of colors") 
-          # TODO: we really don't need to do anything here, no?
+            print("it's normal")
+
+          # I still don't really know what it would mean to have more than 1 type cards? do we really need type cards > 1?
 
     def __init__(self, colors, types):
         # Parameter checks
@@ -145,9 +110,9 @@ class Card:
         
         # Quantum properties
         self.qColorRegister = QuantumRegister(2)
-        self.qTypeRegister = QuantumRegister(4)
+        self.qTypeRegister = QuantumRegister(3)
         self.cColorRegister = ClassicalRegister(2)
-        self.cTypeRegister = ClassicalRegister(4)
+        self.cTypeRegister = ClassicalRegister(3)
         self.qc = QuantumCircuit(self.qColorRegister,
                                  self.qTypeRegister,
                                  self.cColorRegister,
@@ -183,9 +148,6 @@ class Card:
         self.qc.measure(self.qTypeRegister, self.cTypeRegister)
         backend = Aer.get_backend('qasm_simulator')
         counts = execute(self.qc,backend, shots=1024).result().get_counts(self.qc)
-        print(counts)
-        plot_histogram(counts) #TODO: Nothing prints. not that this is a necessary thing, but i never really know why this doesn't happen
-        #TODO: set arrays to counts
         lAnswer = [(k[::-1],v) for k,v in counts.items()]
         lAnswer.sort(key = lambda x: x[1], reverse=True)
         Y = []
@@ -193,62 +155,51 @@ class Card:
         #gather results and interpret them into decimal form
         for k, v in lAnswer: 
           Y.append([ int(c) for c in k if c != ' '])
-          print(Y)
         colorVal = ''
         for i in range(2):
-          colorVal += str(Y[0][i])
+          colorVal = str(Y[0][i]) + colorVal
         colorVal = int(colorVal, 2)
-        print("interpreted color value is " + str(colorVal))
         typeVal = ''
-        for i in range(2, 6):
-          typeVal += str(Y[0][i])
+        for i in range(2, 5):
+          typeVal = str(Y[0][i]) + typeVal
         typeVal = int(typeVal, 2)
-        print("interpreted type value is " + str(typeVal))
-        print(typeVal)
-
-        #add to knownColor
+        
         if colorVal == Color.RED.value:
-          self.knownColor.append(Color.RED)
+          self.knownColor[0] = (Color.RED)
+          measuredColor = Color.RED
           print("we now know it's red")
         elif colorVal == Color.BLUE.value:
-          self.knownColor.append(Color.BLUE)
+          print(Color.BLUE)
+          self.knownColor[0] = (Color.BLUE)
+          measuredColor = Color.BLUE
           print("we now know it's blue")
         elif colorVal == Color.YELLOW.value:
-          self.knownColor.append(Color.YELLOW)
+          self.knownColor[0] = (Color.YELLOW)
+          measuredColor = Color.YELLOW
           print("we now know it's yellow")
         else:
-          self.knownColor.append(Color.GREEN)
+          self.knownColor[0] = (Color.GREEN)
+          measuredColor = Color.GREEN
           print("we now know it's green")
 
-        #add to knownType
-        if typeVal == Type.NUMBER.value:
-          self.knownType.append(Type.NUMBER)
-          print("we now know it's number")
-        elif typeVal == Type.SKIP.value:
-          self.knownType.append(Type.SKIP)
-          print("we now know it's skip")
-        elif typeVal == Type.REVERSE.value:
-          self.knownType.append(Type.REVERSE)
-          print("we now know it's reverse")
-        elif typeVal == Type.DRAW_2.value:
-          self.knownType.append(Type.DRAW_2)
-          print("we now know it's draw_2")
-        elif typeVal == Type.WILD_DRAW_4.value:
-          self.knownType.append(Type.WILD_DRAW_4)
-          print("we now know it's wild_draw_4")
-        elif typeVal == Type.WILD.value:
-          self.knownType.append(Type.WILD)
-          print("we now know it's wild")
+        if typeVal == Type.NORMAL.value:
+          self.knownType[0] = (Type.NORMAL)
+          measuredType = Type.NORMAL
+          print("we now know it's normal")
         elif typeVal == Type.MAKE_ENTANGLED.value:
-          self.knownType.append(Type.MAKE_ENTANGLED)
+          self.knownType[0] = (Type.MAKE_ENTANGLED)
+          measuredType = Type.NORMAL
           print("we now know it's make_entangled")
         elif typeVal == Type.ENTANGLED.value:
-          self.knownType.append(Type.ENTANGLED)
+          self.knownType[0] = (Type.ENTANGLED)
+          measuredType = Type.NORMAL
           print("we now know it's entangled")
         else:
-          self.knownType.append(Type.INTERFERENCE)
+          self.knownType[0] = (Type.INTERFERENCE)
+          measuredType = Type.NORMAL
           print("we now know it's interference")
         self.wasMeasured = True
+        return (measuredColor, measuredType)
         
 
     def action(self, nextPlayer, game):
@@ -268,40 +219,39 @@ class Card:
         assert type(game) is Game, \
               "ERROR in Card.action() - game parameter is not a Game."
         
-        #TODO: I think I'll have a better idea of what actions to take after 
-        # I examine the deck & player class lol
         if len(self.knownType) == 1:
-          print("single type card")
-          if self.knownType[0] == Type.SKIP:
-            print("it's skip")
-            #TODO: do something involving skipping next player
-          elif self.knownType[0] == Type.REVERSE:
-            print("it's reverse")
-            #TODO: do something involving reversing the order
-          elif self.knownType[0] == Type.DRAW_2:
-            print("it's draw 2")
-            #TODO: do something involving increasing adding 2 from deck
-          elif self.knownType[0] == Type.WILD_DRAW_4:
-            print("it's wild draw 4")
-            #TODO: do something involving increasing adding 2 from deck + apply gates to them
-          elif self.knownType[0] == Type.WILD:
-            print("it's wild")
-            #TODO: for wild cards, should this just be a player measuring cards in superposition to put them out of s.p.? or is this us putting a color in superposition?
-          elif self.knownType[0] == Type.MAKE_ENTANGLED:
+          if self.knownType[0] == Type.MAKE_ENTANGLED:
             print("it's make entangled")
-            #TODO: entangle the cards
+            #TODO: how to entangle this card object w/ other card?
           elif self.knownType[0] == Type.ENTANGLED:
             print("it's entangled")
-            #TODO: measure one card 
+            self.qc.measure()
           elif self.knownType[0] == Type.INTERFERENCE:
-            print("it's interference")
-            #TODO: do something involving interference (adding right gates for this)
-          else:
-            print("it's number")
-            # do nothing
+            self.qc.ry(np.pi/2,self.qColorRegister[0]) 
+
+            # INCOMPLETE BS DOWN HERE, EITHER FIX OR REMOVE
+            #calculate applyNum = floor(interferenceCount / 4)
+            #interferenceCount += 1;
+            #applyNum = np.floor(interferenceCount/4)
+            # apply ry(pi/4) to q[1] applyNum times
+            #self.qc.ry(np.pi/4, qColorRegister[1])
+
 
     def show_card(self):
         """ Prints out a representation of the current card to the console
         
         """
-        self.qc.draw() #TODO why won't stuff print :/ compiles fine, but no output for this.
+        for i in range(len(self.knownColor)):
+          print(self.knownColor[i])
+        for i in range(len(self.knownType)):
+          print(self.knownType[i])
+####QUESTIONS/CONCERNS I HAD (there may be more i'm forgetting but if so i forgot them lol#########
+
+#-> Is there a need to even have the circuit represent a normal card? maybe so depending on player/deck 
+#implementation, but idk
+#-> what exactly does it mean for knownTypes length to be bigger than 1? saw something about superposition of colors,
+#but how would we handle this for types (e.g. what exactly do we need to do to type if we have type length > 2?)
+#-> how to handle make entangled? bc each card is its own circuit, right? how can we entangle someone else's card if it's
+#on a diff circuit?
+#-> should wild be a card? or is it more of a concept? bc we use the length of knownColors for superposition...
+#-> I had to dip so i didn't finish/correct my logic for the interference card plis fix
