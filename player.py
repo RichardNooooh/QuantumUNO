@@ -1,5 +1,3 @@
-from card import Card
-
 class Player:
     """ Represents a player in the game
     
@@ -16,10 +14,11 @@ class Player:
     def __init__(self, turn_number):
         self.turnNumber = turn_number
         self.cards = []
+        self.hasUNO = False
         
         self.initialize_hand()
     
-    def initialize_hand(self):
+    def initialize_hand(self): #TODO add card sorting criteria based on color/number/type
         """ Gives the Player their initial hand of random cards
         """
         pass
@@ -29,3 +28,11 @@ class Player:
 
     def play_card(self, index):
         pass
+
+    def print_hand(self):
+        print("Here are your " + str(len(self.cards)) + " cards:")
+        #TODO make this pretty
+
+        for i in range(len(self.cards)):
+            print(str(i) + ": " + str(card))
+            print()

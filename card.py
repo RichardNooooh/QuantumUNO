@@ -60,37 +60,37 @@ class Card:
         This method will add the appropriate gates to obtain the correct colors/types
         """
         if len(self.knownColor) > 1: #initially put the card in superposition. Interference cards played will continue to manipulate until measure
-          self.qc.h(self.qColorRegister[0])
-          self.qc.h(self.qColorRegister[1])
+            self.qc.h(self.qColorRegister[0])
+            self.qc.h(self.qColorRegister[1])
           
         elif len(self.knownColor) == 1:
-          print("single colored card")
-          if self.knownColor[0] == Color.BLUE:
-            print("it's blue")
-            self.qc.x(self.qColorRegister[0])
-          elif self.knownColor[0] == Color.YELLOW:
-            print("it's yellow")
-            self.qc.x(self.qColorRegister[1])
-          elif self.knownColor[0] == Color.GREEN:
-            print("it's green")
-            self.qc.x(self.qColorRegister[0])
-            self.qc.x(self.qColorRegister[1])
-          else:
-            print("it's red")
+            print("single colored card")
+            if self.knownColor[0] == Color.BLUE:
+                print("it's blue")
+                self.qc.x(self.qColorRegister[0])
+            elif self.knownColor[0] == Color.YELLOW:
+                print("it's yellow")
+                self.qc.x(self.qColorRegister[1])
+            elif self.knownColor[0] == Color.GREEN:
+                print("it's green")
+                self.qc.x(self.qColorRegister[0])
+                self.qc.x(self.qColorRegister[1])
+            else:
+                print("it's red")
         
         if len(self.knownType) == 1:
-          if self.knownType[0] == Type.MAKE_ENTANGLED:
-            print("it's make entangled")
-            self.qc.x(self.qTypeRegister[0])
-          elif self.knownType[0] == Type.ENTANGLED:
-            print("it's entangled")
-            self.qc.x(self.qTypeRegister[1])
-          elif self.knownType[0] == Type.INTERFERENCE:
-            print("it's interference")
-            self.qc.x(self.qTypeRegister[0])
-            self.qc.x(self.qTypeRegister[1])
-          else:
-            print("it's normal")
+            if self.knownType[0] == Type.MAKE_ENTANGLED:
+                print("it's make entangled")
+                self.qc.x(self.qTypeRegister[0])
+            elif self.knownType[0] == Type.ENTANGLED:
+                print("it's entangled")
+                self.qc.x(self.qTypeRegister[1])
+            elif self.knownType[0] == Type.INTERFERENCE:
+                print("it's interference")
+                self.qc.x(self.qTypeRegister[0])
+                self.qc.x(self.qTypeRegister[1])
+            else:
+                print("it's normal")
 
           # I still don't really know what it would mean to have more than 1 type cards? do we really need type cards > 1?
 
@@ -154,50 +154,50 @@ class Card:
 
         #gather results and interpret them into decimal form
         for k, v in lAnswer: 
-          Y.append([ int(c) for c in k if c != ' '])
+            Y.append([ int(c) for c in k if c != ' '])
         colorVal = ''
         for i in range(2):
-          colorVal = str(Y[0][i]) + colorVal
+            colorVal = str(Y[0][i]) + colorVal
         colorVal = int(colorVal, 2)
         typeVal = ''
         for i in range(2, 5):
-          typeVal = str(Y[0][i]) + typeVal
+            typeVal = str(Y[0][i]) + typeVal
         typeVal = int(typeVal, 2)
         
         if colorVal == Color.RED.value:
-          self.knownColor[0] = (Color.RED)
-          measuredColor = Color.RED
-          print("we now know it's red")
+            self.knownColor[0] = (Color.RED)
+            measuredColor = Color.RED
+            print("we now know it's red")
         elif colorVal == Color.BLUE.value:
-          print(Color.BLUE)
-          self.knownColor[0] = (Color.BLUE)
-          measuredColor = Color.BLUE
-          print("we now know it's blue")
+            print(Color.BLUE)
+            self.knownColor[0] = (Color.BLUE)
+            measuredColor = Color.BLUE
+            print("we now know it's blue")
         elif colorVal == Color.YELLOW.value:
-          self.knownColor[0] = (Color.YELLOW)
-          measuredColor = Color.YELLOW
-          print("we now know it's yellow")
+            self.knownColor[0] = (Color.YELLOW)
+            measuredColor = Color.YELLOW
+            print("we now know it's yellow")
         else:
-          self.knownColor[0] = (Color.GREEN)
-          measuredColor = Color.GREEN
-          print("we now know it's green")
+            self.knownColor[0] = (Color.GREEN)
+            measuredColor = Color.GREEN
+            print("we now know it's green")
 
         if typeVal == Type.NORMAL.value:
-          self.knownType[0] = (Type.NORMAL)
-          measuredType = Type.NORMAL
-          print("we now know it's normal")
+            self.knownType[0] = (Type.NORMAL)
+            measuredType = Type.NORMAL
+            print("we now know it's normal")
         elif typeVal == Type.MAKE_ENTANGLED.value:
-          self.knownType[0] = (Type.MAKE_ENTANGLED)
-          measuredType = Type.NORMAL
-          print("we now know it's make_entangled")
+            self.knownType[0] = (Type.MAKE_ENTANGLED)
+            measuredType = Type.NORMAL
+            print("we now know it's make_entangled")
         elif typeVal == Type.ENTANGLED.value:
-          self.knownType[0] = (Type.ENTANGLED)
-          measuredType = Type.NORMAL
-          print("we now know it's entangled")
+            self.knownType[0] = (Type.ENTANGLED)
+            measuredType = Type.NORMAL
+            print("we now know it's entangled")
         else:
-          self.knownType[0] = (Type.INTERFERENCE)
-          measuredType = Type.NORMAL
-          print("we now know it's interference")
+            self.knownType[0] = (Type.INTERFERENCE)
+            measuredType = Type.NORMAL
+            print("we now know it's interference")
         self.wasMeasured = True
         return (measuredColor, measuredType)
         
@@ -220,14 +220,14 @@ class Card:
               "ERROR in Card.action() - game parameter is not a Game."
         
         if len(self.knownType) == 1:
-          if self.knownType[0] == Type.MAKE_ENTANGLED:
-            print("it's make entangled")
-            #TODO: how to entangle this card object w/ other card?
-          elif self.knownType[0] == Type.ENTANGLED:
-            print("it's entangled")
-            self.qc.measure()
-          elif self.knownType[0] == Type.INTERFERENCE:
-            self.qc.ry(np.pi/2,self.qColorRegister[0]) 
+            if self.knownType[0] == Type.MAKE_ENTANGLED:
+                print("it's make entangled")
+                #TODO: how to entangle this card object w/ other card?
+            elif self.knownType[0] == Type.ENTANGLED:
+                print("it's entangled")
+                self.qc.measure()
+            elif self.knownType[0] == Type.INTERFERENCE:
+                self.qc.ry(np.pi/2,self.qColorRegister[0])  
 
             # INCOMPLETE BS DOWN HERE, EITHER FIX OR REMOVE
             #calculate applyNum = floor(interferenceCount / 4)
@@ -237,14 +237,14 @@ class Card:
             #self.qc.ry(np.pi/4, qColorRegister[1])
 
 
-    def show_card(self):
+    def __str__(self):
         """ Prints out a representation of the current card to the console
         
         """
         for i in range(len(self.knownColor)):
-          print(self.knownColor[i])
+            print(self.knownColor[i])
         for i in range(len(self.knownType)):
-          print(self.knownType[i])
+            print(self.knownType[i])
 ####QUESTIONS/CONCERNS I HAD (there may be more i'm forgetting but if so i forgot them lol#########
 
 #-> Is there a need to even have the circuit represent a normal card? maybe so depending on player/deck 
