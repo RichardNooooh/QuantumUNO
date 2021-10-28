@@ -9,6 +9,8 @@ class Game:
     """ Manages the current state of the game
 
     This handles the main interface between the users and this program.
+    The text UI, primary game loop and win condition checks are all
+    here.
     """
 
     def __init__(self, numPlayers):
@@ -25,48 +27,57 @@ class Game:
             self.players.append(player.Player(i))
 
 
-    def validPlayInput(self, outString, currentPlayer):
+    def validPlayInput(self, currentPlayer, outString): # TODO make this return a tuple
         givenInput = ""
-        while True:   # TODO add an exception for entangled cards
+        while True:   
             givenInput = input(outString)
             if givenInput.isnumeric() and 0 <= int(givenInput) < len(currentPlayer.cards):
                 cardSelectionIndex = int(givenInput)
                 playedCard = currentPlayer.cards[cardSelectionIndex]
-                # TODO check that the top of played pile matches the known card fields
-                return playedCard
+                if playedCard.isPlayable(self.topOfPlayedPile): 
+                    return playedCard
+                else:
+                    outString = "   Sorry! That card can not be played because the color/type does not match."
             elif givenInput.lower() == "d" or givenInput.lower() == "deck":
                 print("NOT IMPLEMENTED DECK CARD RETRIEVAL")
-                return None #TODO
-            outString = "   Please enter in a valid card number, or \"deck\" to retrieve the top deck card."
+                return None #TODO, don't forget to also add this card to the player's hand.
+            outString = "   Please enter in a valid card id number to play a card from your hand,\n" \
+                + "    or enter \"deck\"/\"d\" to retrieve the top deck card."
 
 
     def play_turn(self):
         # Display starting UI
+        # TODO alert player if anyone has an UNO card
+        # TODO display the top deck card and the top of the played pile
         print("Player " + str(self.playerIndex + 1) + ", it's your turn.")
         currentPlayer = self.players[self.playerIndex]
         print(currentPlayer)
 
         # Receive input
-        playedCard = self.validPlayInput("Select a Card from 0 to " + str(len(currentPlayer.cards) - 1) \
+        playedCard = self.validPlayInput(currentPlayer, "Select a Card from 0 to " + str(len(currentPlayer.cards) - 1) \
             + ", or type \"d\" to play the top deck card.")
         
+        # Collapse superposition (if there was one)
+        self.topOfPlayedPile = playedCard.measure()
+        currentPlayer.cards.remove(playedCard)
+        nextPlayerIndex = (self.playerIndex + 1) % len(self.players)
         
-        
+        # Do the card's action
+        playedCard.action(self.players[nextPlayerIndex], self)
 
-
-        
-        topOfPlayedPile = playedCard.measure()
-        # playedCard.action()
-
-        # Check win condition
+        # Check win/UNO condition
         if len(currentPlayer.cards) == 0:
             self.win()
+        elif len(currentPlayer.cards) == 1:
+            currentPlayer.hasUNO = True
+        else:
+            currentPlayer.hasUNO = False
 
-
-        self.playerIndex = (self.playerIndex + 1) % len(self.players)
+        self.playerIndex = nextPlayerIndex
         
-        # clear_console()
-        currentPlayer.print_hand()
+        # TODO display the same information again
+        clear_console()
+        print(currentPlayer)
         input("Press enter...")
 
         self.next_turn()

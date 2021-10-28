@@ -213,24 +213,37 @@ class Card:
         backend = Aer.get_backend('aer_simulator')
         counts = execute(measureQC, backend, shots=1024).result().get_counts(measureQC) # takes a hot second
 
-        # Look at the top M results
-        topBitStrings = dict(heapq.nlargest(M, counts.items(), key=itemgetter(1))).keys()
-        flippedBitStrings = []
-        for bitString in topBitStrings:
-            flippedBitStrings.append(bitString[::-1])
+        # Look at the top result
+        topBitString = heapq.nlargest(1, counts.items(), key=itemgetter(1))[0][0]
+        correctedBitString = topBitString[::-1]
 
         # Interpret Results
-        colors = []
-        types = []
-        for bitString in flippedBitStrings:
-            measuredColor = (int(bitString, 2) & 0b110000) >> 4
-            measuredType = int(bitString, 2) & 0b001111
-            
-            colors.append(Color(measuredColor))
-            types.append(Type(measuredType))
+        measuredColor = Color((int(correctedBitString, 2) & 0b110000) >> 4)
+        measuredType = Type(int(correctedBitString, 2) & 0b001111)
         
-        return (colors, types)
+        self.wasMeasured = True
+        self.knownColor = [measuredColor]
+        self.knownType = [measuredType]
+        return (measuredColor, measuredType)
         
+    def isPlayable(self, colorTypeTuple):  # TODO add an exception for entangled cards
+        if colorTypeTuple is None:
+            return True
+
+        topColor, topType = colorTypeTuple
+        # as long as one of the types/colors of the card matches, you can play it
+        for col in self.knownColor:
+            if col == topColor:
+                return True
+        
+        for typ in self.knownType:
+            if typ == topType:
+                return True
+        
+        # nothing matches, so return false.
+        return False
+
+
 
     def action(self, nextPlayer, game):
         """ Plays the action of the current card
@@ -240,14 +253,12 @@ class Card:
         # State checks
         assert self.wasMeasured == True, \
               "ERROR in Card.action() - This card has not been measured yet."
-        assert len(self.knownCard) == 1 and len(self.knownType) == 1, \
+        assert len(self.knownColor) == 1 and len(self.knownType) == 1, \
               "ERROR in Card.action() - Card.measure() has not set the known " \
-              + "card and type fields correctly."
+              + "color and type fields correctly."
         # Parameter checks
         assert type(nextPlayer) is player.Player, \
               "ERROR in Card.action() - nextPlayer parameter is not a Player."
-        assert type(game) is quno.Game, \
-              "ERROR in Card.action() - game parameter is not a Game."
         
         pass
 
