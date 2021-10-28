@@ -1,6 +1,6 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
 from qiskit.visualization import plot_histogram, plot_state_qsphere, plot_bloch_multivector, plot_bloch_vector
-from enum import Enum, auto
+from enum import Enum
 import heapq
 from operator import itemgetter
 
@@ -18,6 +18,17 @@ class Color(Enum):
     BLUE    = 1     # 01
     YELLOW  = 2     # 10
     GREEN   = 3     # 11
+
+    def getOppositeColor(self):
+        if self == Color.RED:
+            return Color.BLUE
+        elif self == Color.BLUE:
+            return Color.RED
+        elif self == Color.YELLOW:
+            return Color.GREEN
+        elif self == Color.GREEN:
+            return Color.YELLOW
+
 
 class Type(Enum):
     """ Represents the type of the card
@@ -37,11 +48,16 @@ class Type(Enum):
     NUM_NINE        = 8      # 1000
     
     # Special Quantum Cards
-    MAKE_ENTANGLED  = 9      # 1001
-    ADD_PHASE       = 10     # 1010
+    ADD_PHASE                   = 9       # 1001
 
-    # "Super Special" Quantum Card
-    ENTANGLED       = 11     # 1011
+    MAKE_ENTANGLED_RED_BLUE     = 10      # 1010
+    MAKE_ENTANGLED_RED_GREEN    = 11      # 1012
+    MAKE_ENTANGLED_RED_YELLOW   = 12      # 1100
+    MAKE_ENTANGLED_BLUE_GREEN   = 13      # 1101
+    MAKE_ENTANGLED_BLUE_YELLOW  = 14      # 1110
+    MAKE_ENTANGLED_GREEN_YELLOW = 15      # 1111
+
+         
 
 
 class Card:
@@ -260,7 +276,23 @@ class Card:
         assert type(nextPlayer) is player.Player, \
               "ERROR in Card.action() - nextPlayer parameter is not a Player."
         
-        pass
+        cardType = self.knownType[0]
+        willEntangleNextPlayer = False
+        if cardType == Type.MAKE_ENTANGLED_RED_BLUE: # TODO entangle
+            game.deck.newEntangled([Color.RED, Color.BLUE])
+        elif cardType == Type.MAKE_ENTANGLED_RED_GREEN:
+            game.deck.newEntangled([Color.RED, Color.GREEN])
+        elif cardType == Type.MAKE_ENTANGLED_RED_YELLOW:
+            game.deck.newEntangled([Color.RED, Color.YELLOW])
+        elif cardType == Type.MAKE_ENTANGLED_BLUE_GREEN:
+            game.deck.newEntangled([Color.BLUE, Color.GREEN])
+        elif cardType == Type.MAKE_ENTANGLED_BLUE_YELLOW:
+            game.deck.newEntangled([Color.BLUE, Color.YELLOW])
+        elif cardType == Type.MAKE_ENTANGLED_GREEN_YELLOW:
+            game.deck.newEntangled([Color.GREEN, Color.YELLOW])
+        
+        elif cardType == Type.ADD_PHASE:
+            game.deck.addRYPhase()
 
 
     def __str__(self):
