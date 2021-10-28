@@ -24,13 +24,7 @@ class Player:
         initialHandSize = 5
         for _ in range(initialHandSize):
             self.cards.append(deck.Deck.newCard())
-        
-
-    def get_card(self):
-        pass
-
-    def play_card(self, index):
-        pass
+    
 
     def __str__(self):
         print("Here are your " + str(len(self.cards)) + " cards:")
