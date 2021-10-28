@@ -22,12 +22,14 @@ class Game:
         
         self.initialize_players(numPlayers)
     
-
+    
+    # Creates the player objects
     def initialize_players(self, numPlayers):
         for i in range(numPlayers):
             self.players.append(player.Player(i+1, self.deck))
 
 
+    # Handles the game input
     def validPlayInput(self, currentPlayer, outString): 
         givenInput = ""
         while True:
@@ -52,6 +54,7 @@ class Game:
                 + "    or enter \"deck\"/\"d\" to retrieve the top deck card."
 
     
+    # Prints out the general user interface here
     def displayTurnUI(self):
         print("----------------------------------------")
         print("██████  ███████  ██████ ██   ██ ")
@@ -117,10 +120,9 @@ class Game:
             print("You currently have QUNO! You're almost there!\n")
 
 
+    # Handles the main game logic for turns
     def play_turn(self):
         # Display starting UI
-        # TODO alert player if anyone has an UNO card
-        # TODO display the top deck card
         clear_console()
         print("Welcome Player " + str(self.playerIndex + 1) + ".")
         self.displayTurnUI()
@@ -175,6 +177,8 @@ class Game:
     def start_game(self):
         self.play_turn()
 
+
+# Empties the console window
 def clear_console():
     if os.name=='nt':
         os.system("cls")   # Windows
@@ -184,6 +188,8 @@ def clear_console():
     for _ in range(100):
         print("\n")
 
+
+# Checks for input on the number of players
 def validNumInput(outString, lowerLimit, upperLimit):
     isValid = False
     givenInput = ""
@@ -198,6 +204,8 @@ def validNumInput(outString, lowerLimit, upperLimit):
     
     return givenInput
 
+
+# Starting point of the program
 if __name__ == "__main__":
     clear_console()
     print("````````````````````````````````````````````````````````````````````````````````")

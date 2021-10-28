@@ -19,6 +19,7 @@ class Color(Enum):
     YELLOW  = 2     # 10
     GREEN   = 3     # 11
 
+    # Returns the "opposite" color for the phaseadd logic
     def getOppositeColor(self):
         if self == Color.RED:
             return Color.BLUE
@@ -29,6 +30,8 @@ class Color(Enum):
         elif self == Color.GREEN:
             return Color.YELLOW
 
+
+    # Clean print
     def __str__(self):
         if self == Color.RED:
             return "Red"
@@ -43,8 +46,7 @@ class Color(Enum):
 class Type(Enum):
     """ Represents the type of the card
 
-    We encode the type with five qubits.
-
+    We encode the type with four qubits.
     """
     # Standard Normal Number Cards
     NUM_ONE         = 0      # 0000
@@ -67,6 +69,8 @@ class Type(Enum):
     MAKE_ENTANGLED_BLUE_YELLOW  = 14      # 1110
     MAKE_ENTANGLED_GREEN_YELLOW = 15      # 1111
 
+
+    # Clean prints
     def __str__(self):
         if 0 <= self.value <= 8:
             return str(self.value + 1)
@@ -107,8 +111,9 @@ class Card:
         The length of knownType must be the same as the length of knownColor.
     """
 
+    # Obtained from Homework 4
     @classmethod
-    def recCZa(self, qc, a, Cr, Tr): # TODO add documentation here
+    def recCZa(self, qc, a, Cr, Tr):
         if len(Cr)<=1:
             if len(Cr)==1:          #if only 1 control bit, apply the C-gate
                 qc.cu1(np.pi*a,Cr[0],Tr)
@@ -135,11 +140,13 @@ class Card:
             #recursivle apply CC-sqrt(U)
             Card.recCZa(qc,a/2,Cr[0:nn-1],Tr)
 
+    # Obtained from Homework 4
     @classmethod
     def recTof(self, qc, Cr, Tr):
         qc.h(Tr)
         Card.recCZa(qc,1,Cr,Tr)
         qc.h(Tr)
+
 
     def initialize_qc(self):
         """ Initializes the internal quantum circuit to the knownColors/knownTypes
@@ -149,7 +156,6 @@ class Card:
         for a superposition card) we want this object to represent, we use a
         multi-qubit Toffoli gate, filtering it out based on the bit representations
         of the color and type of the card state.
-
         """
         M = len(self.knownColor)
         toffoliQC = QuantumCircuit(7)
@@ -173,7 +179,7 @@ class Card:
                 self.qc.x(xGateIndices)
 
 
-    def __init__(self, colors, types, isEntangled=False): #TODO allow for an empty constructor for Entangled cards
+    def __init__(self, colors, types, isEntangled=False):
         # Parameter checks
         assert type(colors) is list and type(colors[0]) is Color, \
               "ERROR in Card.__init__() - The type of 'colors' is wrong: " \
@@ -191,11 +197,13 @@ class Card:
         self.wasMeasured = False
 
         # Known properties
-        self.isEntangled = isEntangled
+        self.isEntangled = isEntangled # the "isEntangled" prevents the card from being played without wasting a turn
         self.knownColor = colors
         self.knownType = types
 
         self.initialize_qc()
+
+
 
     def measure(self):
         """ Determines the actual color and type of this card
@@ -269,6 +277,7 @@ class Card:
         return (measuredColor, measuredType)
 
 
+    # Given a colortype tuple, checks if this card matches and can be played
     def isPlayable(self, colorTypeTuple):
         if self.isEntangled == True:
             return True
@@ -289,6 +298,7 @@ class Card:
         return False
 
 
+    # For the special card actions
     def action(self, nextPlayer, game):
         """ Plays the action of the current card
         Based on the knownType of the card, this method will do something
@@ -331,6 +341,7 @@ class Card:
         return None
 
 
+    # Prints out the card to the console
     def __str__(self):
         """ Prints out a representation of the current card to the console
         

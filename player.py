@@ -22,14 +22,17 @@ class Player:
         
         self.initialize_hand()
     
-    def initialize_hand(self): #TODO add card sorting criteria based on color/number/type
-        initialHandSize = 2
+
+    # Creates the initial cards
+    def initialize_hand(self):
+        initialHandSize = 5
         for _ in range(initialHandSize):
-            knownColor, knownType, isMakeEntangled = self.deck.newCard()
+            knownColor, knownType = self.deck.newCard()
             self.cards.append(card.Card(knownColor, knownType))
     
 
-    def __str__(self): #TODO make it so that the print outs consider showing the Entangled cards
+    # Prints out the cards
+    def __str__(self):
         print("--------------------------------------------------------------------------")
         print("██    ██  ██████  ██    ██ ██████      ██   ██  █████  ███    ██ ██████  ")
         print(" ██  ██  ██    ██ ██    ██ ██   ██     ██   ██ ██   ██ ████   ██ ██   ██ ")

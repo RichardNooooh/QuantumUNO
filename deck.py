@@ -23,6 +23,7 @@ class Deck:
     colors.
     """
 
+    # Initializes the internal circuit
     def initColorCircuit(self):
         firstColor = self.deckColors[0]
         if firstColor == card.Color.RED:
@@ -35,7 +36,7 @@ class Deck:
             self.colorQC.x((0, 1)) 
 
     
-    # FOR MEASUREMENT
+    # A dictionary for the colors so that the color pairs do not get mixed
     def initColorDictionary(self):
         self.colorDict = {}
         if len(self.deckColors) > 1:
@@ -43,8 +44,9 @@ class Deck:
             self.colorDict[self.deckColors[0].getOppositeColor()] = self.deckColors[1].getOppositeColor()
 
     
+    # resets the top card
     def resetTopCard(self):
-        newColors, newTypes, isMakeEntangled = self.newCard()
+        newColors, newTypes = self.newCard()
 
         # stores the "true state" of the top card
         self.deckColors = newColors
@@ -73,6 +75,7 @@ class Deck:
         self.resetTopCard()
 
     
+    # For the action method, adding the RY gate to color[0] and updates the topofDeckColor tuple
     def addRYPhase(self):
         self.ryGateCount += 1
         self.colorQC.ry(np.pi / 2, 0)
@@ -97,6 +100,7 @@ class Deck:
                 self.topOfDeckColor = [(self.deckColors[0].getOppositeColor(), None)]
 
 
+    # Returns the top card and resets it
     def getTopCard(self):
         # measure the color circuit
         self.colorQC.measure(0, 0)
@@ -119,11 +123,13 @@ class Deck:
         return topCard
 
 
+    # Adds a color enum to the given colorArray
     def addColor(self, colorArray):
         color = randint(0, 3)
         colorArray.append(card.Color(color))
 
 
+    # Adds a type enum to the given type array
     def addType(self, typeArray, isMakeEntangled):
         if not isMakeEntangled:
             type = randint(0, 9) # 0-10 inclusive
@@ -133,7 +139,7 @@ class Deck:
         typeArray.append(card.Type(type))
 
 
-    def newCard(self): #TODO reconsider if I need to send isMakeEntangled a part of the return tuple
+    def newCard(self):
         """ Creates a new random card for self.topOfDeckColor.
         The Card() constructor will generate the internal quantum
         circuit. This method must simply specify the various colors
@@ -166,7 +172,7 @@ class Deck:
                 self.addType(temporaryTypes, False)
             knownTypes.append(temporaryTypes[0])
 
-        return (knownColors, knownTypes, isMakeEntangled)
+        return (knownColors, knownTypes)
 
 
     def newEntangled(self, cardColor):
