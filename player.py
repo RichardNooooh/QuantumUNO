@@ -1,4 +1,5 @@
 import deck
+import card
 
 class Player:
     """ Represents a player in the game
@@ -13,9 +14,10 @@ class Player:
         Represents the hand of cards that the player holds.
     """
 
-    def __init__(self, turn_number):
+    def __init__(self, turn_number, deck):
         self.turnNumber = turn_number
         self.cards = []
+        self.deck = deck
         self.hasUNO = False
         
         self.initialize_hand()
@@ -23,10 +25,11 @@ class Player:
     def initialize_hand(self): #TODO add card sorting criteria based on color/number/type
         initialHandSize = 5
         for _ in range(initialHandSize):
-            self.cards.append(deck.Deck.newCard())
+            knownColor, knownType, isMakeEntangled = self.deck.newCard()
+            self.cards.append(card.Card(knownColor, knownType))
     
 
-    def __str__(self):
+    def __str__(self): #TODO make it so that the print outs consider showing the Entangled cards
         print("Here are your " + str(len(self.cards)) + " cards:")
         #TODO make this pretty
         returnString = ""

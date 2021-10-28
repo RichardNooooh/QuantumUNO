@@ -1,7 +1,7 @@
 import os
 import sys
-import platform
 import player
+import deck
 
 # Main Game Logic
 
@@ -14,56 +14,87 @@ class Game:
     """
 
     def __init__(self, numPlayers):
-        self.turnOrder = 1
+        self.turnOrder = 1 # ! shouldn't need this
         self.playerIndex = 0
         self.players = []
         self.topOfPlayedPile = None
+
+        self.deck = deck.Deck()
         
         self.initialize_players(numPlayers)
     
 
     def initialize_players(self, numPlayers):
         for i in range(numPlayers):
-            self.players.append(player.Player(i))
+            self.players.append(player.Player(i, self.deck))
 
 
-    def validPlayInput(self, currentPlayer, outString): # TODO make this return a tuple
+    def validPlayInput(self, currentPlayer, outString): 
         givenInput = ""
-        while True:   
+        while True:
             givenInput = input(outString)
             if givenInput.isnumeric() and 0 <= int(givenInput) < len(currentPlayer.cards):
                 cardSelectionIndex = int(givenInput)
                 playedCard = currentPlayer.cards[cardSelectionIndex]
                 if playedCard.isPlayable(self.topOfPlayedPile): 
-                    return playedCard
+                    if playedCard.isEntangled == True:
+                        playedCard.isEntangled = False
+                        return (True, None)
+                    else:
+                        return (False, playedCard)
                 else:
                     outString = "   Sorry! That card can not be played because the color/type does not match."
             elif givenInput.lower() == "d" or givenInput.lower() == "deck":
-                print("NOT IMPLEMENTED DECK CARD RETRIEVAL")
-                return None #TODO, don't forget to also add this card to the player's hand.
+                # self.deck.addRYPhase()
+                playedCard = self.deck.getTopCard()
+                return (True, playedCard)
             outString = "   Please enter in a valid card id number to play a card from your hand,\n" \
                 + "    or enter \"deck\"/\"d\" to retrieve the top deck card."
+
+    
+    def displayTurnUI(self):
+        print("   The next card from the deck will be: ")
+        if len(self.deck.deckColors) == 2:
+            print("    A superposition of:")
+            print("    " + str(self.deck.topOfDeckColor[0][0]) + " and " + str(self.deck.topOfDeckColor[0][1]))
+            if len(self.deck.topOfDeckColor) == 2:
+                print("    " + str(self.deck.topOfDeckColor[1][0]) + " and " + str(self.deck.topOfDeckColor[1][1]))
+        else:
+            print("     " + str(self.deck.topOfDeckColor[0][0]))
+            if len(self.deck.topOfDeckColor) == 2:
+                print("     " + str(self.deck.topOfDeckColor[1][0]))
+
+        if self.topOfPlayedPile is not None:
+            print("\nLast played card: " + str(self.topOfPlayedPile))
+
 
 
     def play_turn(self):
         # Display starting UI
         # TODO alert player if anyone has an UNO card
-        # TODO display the top deck card and the top of the played pile
-        print("Player " + str(self.playerIndex + 1) + ", it's your turn.")
+        # TODO display the top deck card
+        clear_console()
+        print("Welcome Player " + str(self.playerIndex + 1) + ".")
+        self.displayTurnUI()
         currentPlayer = self.players[self.playerIndex]
         print(currentPlayer)
 
         # Receive input
-        playedCard = self.validPlayInput(currentPlayer, "Select a Card from 0 to " + str(len(currentPlayer.cards) - 1) \
-            + ", or type \"d\" to play the top deck card.")
+        pulledDeck, playedCard = self.validPlayInput(currentPlayer, "Select a Card from 0 to " + str(len(currentPlayer.cards) - 1) \
+            + ", or type \"d\" to draw the from the deck.")
         
-        # Collapse superposition (if there was one)
-        self.topOfPlayedPile = playedCard.measure()
-        currentPlayer.cards.remove(playedCard)
         nextPlayerIndex = (self.playerIndex + 1) % len(self.players)
-        
-        # Do the card's action
-        playedCard.action(self.players[nextPlayerIndex], self)
+        if pulledDeck is False: 
+            # Collapse superposition (if there was one)
+            self.topOfPlayedPile = playedCard.measure()
+            currentPlayer.cards.remove(playedCard)
+
+            # Do the card's action
+            actionReturn = playedCard.action(self.players[nextPlayerIndex], self)
+            if actionReturn is not None:
+                self.topOfPlayedPile = actionReturn
+        elif playedCard is not None:
+            self.players[self.playerIndex].cards.append(playedCard)
 
         # Check win/UNO condition
         if len(currentPlayer.cards) == 0:
@@ -72,14 +103,14 @@ class Game:
             currentPlayer.hasUNO = True
         else:
             currentPlayer.hasUNO = False
-
-        self.playerIndex = nextPlayerIndex
         
-        # TODO display the same information again
+        # redisplay the table
         clear_console()
+        self.displayTurnUI()
         print(currentPlayer)
         input("Press enter...")
 
+        self.playerIndex = nextPlayerIndex
         self.next_turn()
 
 
@@ -97,11 +128,13 @@ class Game:
         self.play_turn()
 
 def clear_console():
-    os_name = platform.system
-    if os_name == "Windows":
+    if os.name=='nt':
         os.system("cls")   # Windows
     else:
         os.system("clear") # Linux/Mac
+
+    for _ in range(100):
+        print("\n")
 
 def validNumInput(outString, lowerLimit, upperLimit):
     isValid = False
