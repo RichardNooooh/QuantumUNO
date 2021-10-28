@@ -29,6 +29,16 @@ class Color(Enum):
         elif self == Color.GREEN:
             return Color.YELLOW
 
+    def __str__(self):
+        if self == Color.RED:
+            return "Red"
+        elif self == Color.BLUE:
+            return "Blue"
+        elif self == Color.YELLOW:
+            return "Yellow"
+        elif self == Color.GREEN:
+            return "Green"
+
 
 class Type(Enum):
     """ Represents the type of the card
@@ -57,7 +67,23 @@ class Type(Enum):
     MAKE_ENTANGLED_BLUE_YELLOW  = 14      # 1110
     MAKE_ENTANGLED_GREEN_YELLOW = 15      # 1111
 
-         
+    def __str__(self):
+        if 0 <= self.value <= 8:
+            return str(self.value + 1)
+        elif self == Type.ADD_PHASE:
+            return "AddPhase PI/2"
+        elif self == Type.MAKE_ENTANGLED_RED_BLUE:
+            return "Make Entangled Red and Blue Pair"
+        elif self == Type.MAKE_ENTANGLED_RED_GREEN:
+            return "Make Entangled Red and Green Pair"
+        elif self == Type.MAKE_ENTANGLED_RED_YELLOW:
+            return "Make Entangled Red and Yellow Pair"
+        elif self == Type.MAKE_ENTANGLED_BLUE_GREEN:
+            return "Make Entangled Blue and Green Pair"
+        elif self == Type.MAKE_ENTANGLED_BLUE_YELLOW:
+            return "Make Entangled Blue and Yellow Pair"
+        elif self == Type.MAKE_ENTANGLED_GREEN_YELLOW:
+            return "Make Entangled Green and Yellow Pair"
 
 
 class Card:
@@ -309,10 +335,17 @@ class Card:
         """ Prints out a representation of the current card to the console
         
         """
+        assert len(self.knownColor) == len(self.knownType)
         returnString = ""
-        for i in range(len(self.knownColor)):
-            returnString += str(self.knownColor[i]) + "\n"
-        for i in range(len(self.knownType)):
-            returnString += str(self.knownType[i]) + "\n"
+
+        if self.isEntangled == True:
+            returnString += "    UNKNOWN ENTANGLED CARD, MUST SPEND ACTION TO MEASURE THIS CARD"
+        else:
+            if len(self.knownColor) > 1:
+                returnString += "    Superposition of:\n"
+            for i in range(len(self.knownColor)):
+                returnString += "    - "
+                returnString += str(self.knownColor[i]) + " : "
+                returnString += str(self.knownType[i]) + "\n"
 
         return returnString

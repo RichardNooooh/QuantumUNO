@@ -144,7 +144,7 @@ class Deck:
         See Card class for the specifications on knownColors and knownTypes.
         """
 
-        probOfMakeEntangled = 1
+        probOfMakeEntangled = 0.2
         probOfSuperposition = 0.5
         isMakeEntangled = random() < probOfMakeEntangled
         isSuperposition = random() < probOfSuperposition
@@ -223,5 +223,5 @@ class Deck:
         nextCardType = []
         self.addType(nextCardType, False)
         
-        return ((currCardColor, currCardType), \
+        return ((currCardColor, currCardType[0]), \
             card.Card([nextCardColor], nextCardType, isEntangled=True))

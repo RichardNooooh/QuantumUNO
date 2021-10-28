@@ -14,7 +14,6 @@ class Game:
     """
 
     def __init__(self, numPlayers):
-        self.turnOrder = 1 # ! shouldn't need this
         self.playerIndex = 0
         self.players = []
         self.topOfPlayedPile = None
@@ -26,7 +25,7 @@ class Game:
 
     def initialize_players(self, numPlayers):
         for i in range(numPlayers):
-            self.players.append(player.Player(i, self.deck))
+            self.players.append(player.Player(i+1, self.deck))
 
 
     def validPlayInput(self, currentPlayer, outString): 
@@ -44,6 +43,7 @@ class Game:
                         return (False, playedCard)
                 else:
                     outString = "   Sorry! That card can not be played because the color/type does not match."
+                    continue
             elif givenInput.lower() == "d" or givenInput.lower() == "deck":
                 # self.deck.addRYPhase()
                 playedCard = self.deck.getTopCard()
@@ -53,20 +53,68 @@ class Game:
 
     
     def displayTurnUI(self):
-        print("   The next card from the deck will be: ")
+        print("----------------------------------------")
+        print("██████  ███████  ██████ ██   ██ ")
+        print("██   ██ ██      ██      ██  ██  ")
+        print("██   ██ █████   ██      █████   ")
+        print("██   ██ ██      ██      ██  ██  ")
+        print("██████  ███████  ██████ ██   ██ ")
+        print("----------------------------------------")
+        print("The next card from the deck will be: ")
         if len(self.deck.deckColors) == 2:
             print("    A superposition of:")
             print("    " + str(self.deck.topOfDeckColor[0][0]) + " and " + str(self.deck.topOfDeckColor[0][1]))
             if len(self.deck.topOfDeckColor) == 2:
+                print("         OR")
                 print("    " + str(self.deck.topOfDeckColor[1][0]) + " and " + str(self.deck.topOfDeckColor[1][1]))
         else:
-            print("     " + str(self.deck.topOfDeckColor[0][0]))
+            print("    " + str(self.deck.topOfDeckColor[0][0]))
             if len(self.deck.topOfDeckColor) == 2:
-                print("     " + str(self.deck.topOfDeckColor[1][0]))
+                print("         OR")
+                print("    " + str(self.deck.topOfDeckColor[1][0]))
+        print("    Current Phase: " + str(self.deck.ryGateCount) + " * pi/2\n")
+
+        print("------------------------------------------------------------------")
+        print("██    ██ ███████ ███████ ██████      ██████  ██ ██      ███████ ")
+        print("██    ██ ██      ██      ██   ██     ██   ██ ██ ██      ██      ")
+        print("██    ██ ███████ █████   ██   ██     ██████  ██ ██      █████   ")
+        print("██    ██      ██ ██      ██   ██     ██      ██ ██      ██      ")
+        print(" ██████  ███████ ███████ ██████      ██      ██ ███████ ███████ ")
+        print("------------------------------------------------------------------")
 
         if self.topOfPlayedPile is not None:
-            print("\nLast played card: " + str(self.topOfPlayedPile))
+            print("Last played card: " + str(self.topOfPlayedPile[0]) + " : " + str(self.topOfPlayedPile[1]) + "\n")
+        else:
+            print("No cards have been played yet. You can place down any card that you want.\n")
 
+        # check for players that have UNO
+        playersWithUNO = []
+        for player in self.players:
+            if player.hasUNO == True:
+                playersWithUNO.append(player.turnNumber)
+        if len(playersWithUNO) > 0 and (self.playerIndex+1) not in playersWithUNO:
+            print("------------------------------------------------------------")
+            print("██     ██  █████  ██████  ███    ██ ██ ███    ██  ██████  ")
+            print("██     ██ ██   ██ ██   ██ ████   ██ ██ ████   ██ ██       ")
+            print("██  █  ██ ███████ ██████  ██ ██  ██ ██ ██ ██  ██ ██   ███ ")
+            print("██ ███ ██ ██   ██ ██   ██ ██  ██ ██ ██ ██  ██ ██ ██    ██ ")
+            print(" ███ ███  ██   ██ ██   ██ ██   ████ ██ ██   ████  ██████  ")
+            print("------------------------------------------------------------")
+            print("The following players currently have QUNO has are about to win")
+            for num in playersWithUNO:
+                print("    Player " + str(num))
+            print()
+
+        elif (self.playerIndex+1) in playersWithUNO:
+            print("---------------------------------------")
+            print(" ██████  ██    ██ ███    ██  ██████  ")
+            print("██    ██ ██    ██ ████   ██ ██    ██ ")
+            print("██    ██ ██    ██ ██ ██  ██ ██    ██ ")
+            print("██ ▄▄ ██ ██    ██ ██  ██ ██ ██    ██ ")
+            print(" ██████   ██████  ██   ████  ██████  ")
+            print("    ▀▀                               ")
+            print("---------------------------------------")
+            print("You currently have QUNO! You're almost there!\n")
 
 
     def play_turn(self):
@@ -164,14 +212,11 @@ if __name__ == "__main__":
     print("````````````````````````````````````````````````````````````````````````````````")
     print("Welcome to QUNO - A Quantum-based UNO Console Game")
     print("     Developed by Abdullah Assaf, Emily Padilla, and Richard Noh")
-    print("     For TODO...")
     print("")
-    playerTotal = validNumInput("To start the game, please enter in the number of players for this game of QUNO: ", 3, 9)
+    playerTotal = validNumInput("To start the game, please enter in the number of players for this game of QUNO:  ", 2, 9)
     print("Before the game starts, please decide amongst yourselves who will be player\n1, 2, and etc.")
     input("Once you have decided, please press Enter:")
 
-    # TODO write help documentation and help() function
-    # TODO console input
     clear_console()
 
     game = Game(int(playerTotal))
