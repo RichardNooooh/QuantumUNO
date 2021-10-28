@@ -29,7 +29,7 @@ class Game:
             self.players.append(player.Player(i, self.deck))
 
 
-    def validPlayInput(self, currentPlayer, outString): # TODO make this return a tuple
+    def validPlayInput(self, currentPlayer, outString): 
         givenInput = ""
         while True:
             givenInput = input(outString)
@@ -37,7 +37,11 @@ class Game:
                 cardSelectionIndex = int(givenInput)
                 playedCard = currentPlayer.cards[cardSelectionIndex]
                 if playedCard.isPlayable(self.topOfPlayedPile): 
-                    return (False, playedCard)
+                    if playedCard.isEntangled == True:
+                        playedCard.isEntangled = False
+                        return (True, None)
+                    else:
+                        return (False, playedCard)
                 else:
                     outString = "   Sorry! That card can not be played because the color/type does not match."
             elif givenInput.lower() == "d" or givenInput.lower() == "deck":
@@ -86,8 +90,10 @@ class Game:
             currentPlayer.cards.remove(playedCard)
 
             # Do the card's action
-            playedCard.action(self.players[nextPlayerIndex], self)
-        else:
+            actionReturn = playedCard.action(self.players[nextPlayerIndex], self)
+            if actionReturn is not None:
+                self.topOfPlayedPile = actionReturn
+        elif playedCard is not None:
             self.players[self.playerIndex].cards.append(playedCard)
 
         # Check win/UNO condition

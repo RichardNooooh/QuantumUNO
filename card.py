@@ -241,8 +241,11 @@ class Card:
         self.knownColor = [measuredColor]
         self.knownType = [measuredType]
         return (measuredColor, measuredType)
-        
-    def isPlayable(self, colorTypeTuple):  # TODO add an exception for entangled cards
+
+
+    def isPlayable(self, colorTypeTuple):
+        if self.isEntangled == True:
+            return True
         if colorTypeTuple is None:
             return True
 
@@ -258,7 +261,6 @@ class Card:
         
         # nothing matches, so return false.
         return False
-
 
 
     def action(self, nextPlayer, game):
@@ -277,22 +279,30 @@ class Card:
               "ERROR in Card.action() - nextPlayer parameter is not a Player."
         
         cardType = self.knownType[0]
-        willEntangleNextPlayer = False
-        if cardType == Type.MAKE_ENTANGLED_RED_BLUE: # TODO entangle
-            game.deck.newEntangled([Color.RED, Color.BLUE])
+        playedCard = ()
+        entanglingCard = None
+
+        if cardType == Type.MAKE_ENTANGLED_RED_BLUE:
+            playedCard, entanglingCard = game.deck.newEntangled([Color.RED, Color.BLUE])
         elif cardType == Type.MAKE_ENTANGLED_RED_GREEN:
-            game.deck.newEntangled([Color.RED, Color.GREEN])
+            playedCard, entanglingCard = game.deck.newEntangled([Color.RED, Color.GREEN])
         elif cardType == Type.MAKE_ENTANGLED_RED_YELLOW:
-            game.deck.newEntangled([Color.RED, Color.YELLOW])
+            playedCard, entanglingCard = game.deck.newEntangled([Color.RED, Color.YELLOW])
         elif cardType == Type.MAKE_ENTANGLED_BLUE_GREEN:
-            game.deck.newEntangled([Color.BLUE, Color.GREEN])
+            playedCard, entanglingCard = game.deck.newEntangled([Color.BLUE, Color.GREEN])
         elif cardType == Type.MAKE_ENTANGLED_BLUE_YELLOW:
-            game.deck.newEntangled([Color.BLUE, Color.YELLOW])
+            playedCard, entanglingCard = game.deck.newEntangled([Color.BLUE, Color.YELLOW])
         elif cardType == Type.MAKE_ENTANGLED_GREEN_YELLOW:
-            game.deck.newEntangled([Color.GREEN, Color.YELLOW])
+            playedCard, entanglingCard = game.deck.newEntangled([Color.GREEN, Color.YELLOW])
         
         elif cardType == Type.ADD_PHASE:
             game.deck.addRYPhase()
+
+        if entanglingCard is not None:
+            nextPlayer.cards.append(entanglingCard)
+            return playedCard
+        
+        return None
 
 
     def __str__(self):

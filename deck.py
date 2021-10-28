@@ -44,7 +44,7 @@ class Deck:
 
     
     def resetTopCard(self):
-        newColors, newTypes = self.newCard()
+        newColors, newTypes, isMakeEntangled = self.newCard()
 
         # stores the "true state" of the top card
         self.deckColors = newColors
@@ -124,53 +124,104 @@ class Deck:
         colorArray.append(card.Color(color))
 
 
-    def addType(self, typeArray):
-        type = randint(0, 9) # 0-10 inclusive
+    def addType(self, typeArray, isMakeEntangled):
+        if not isMakeEntangled:
+            type = randint(0, 9) # 0-10 inclusive
+        else:
+            type = randint(10, 15) # 10-15 inclusive
+
         typeArray.append(card.Type(type))
 
 
-    def newCard(self):
+    def newCard(self): #TODO reconsider if I need to send isMakeEntangled a part of the return tuple
         """ Creates a new random card for self.topOfDeckColor.
         The Card() constructor will generate the internal quantum
         circuit. This method must simply specify the various colors
         and types the new Deck card will have.
 
-        Returns the tuple (colors, types) for the new card.
+        Returns the tuple (colors, types, isMakeEntangled) for the new card.
 
         See Card class for the specifications on knownColors and knownTypes.
         """
-        # Is this going to be a new superposition card?
+
+        probOfMakeEntangled = 1
         probOfSuperposition = 0.5
-        probOfMakeEntangled = 0.2
-        isMakeEntangled = random() < probOfMakeEntangled #TODO
-        isSuperposition = random() < probOfSuperposition #only going to do a max of 2
+        isMakeEntangled = random() < probOfMakeEntangled
+        isSuperposition = random() < probOfSuperposition
 
         knownColors = []
         knownTypes = []
         self.addColor(knownColors)
-        self.addType(knownTypes)
+        self.addType(knownTypes, isMakeEntangled)
 
-        if (isSuperposition):
+        # I do not want superposition cards to be make entangled cards
+        if isSuperposition and not isMakeEntangled:
             self.addColor(knownColors)
             temporaryTypes = []
-            self.addType(temporaryTypes)
+            self.addType(temporaryTypes, False)
+
+            # Ensure that a card is not a duplicate of itself
             while temporaryTypes[0] in knownTypes:
                 temporaryTypes = []
-                self.addType(temporaryTypes)
+                self.addType(temporaryTypes, False)
             knownTypes.append(temporaryTypes[0])
 
-        return (knownColors, knownTypes)
+        return (knownColors, knownTypes, isMakeEntangled)
 
 
-    def newEntangled(self, color): # TODO
-        """ Creates a new entangled card for the caller
+    def newEntangled(self, cardColor):
+        """ Creates an entangled pair of cards for the caller
 
-        Creates a random new card for the caller.
-        len(knownColors[]) == 0 and len(knownTypes[]) == 0
+        This function returns a tuple of two elements:
+            [0] - A tuple of Color/Type, representing the output
+                  of an entanglement measurement done by the first player
+            [1] - An "isEntangled" card, representing an unmeasured entangled
+                  card for the next player.
 
-        This method will directly manipulate the internal quantum circuit
-        See Card class for the specifications on knownColors and knownTypes.
+        We use a quantum circuit to emulate the process of entangling the
+        two cards, by creating a 2-qubit quantum circuit that represents
+        the bell state (|01> + |10>)/sqrt(2). Qubit 0 represents
+        the original player and qubit 1 represents the next player.
+        Let the bit value 0 represent cardColor[0], while the bit value 
+        1 represents cardColor[1]. 
+        
+        If we measure qubit 0 and read the bit 0, we know that qubit 1 must
+        have the bit value 1. This is analogous to the original player 
+        receiving a card with cardColor[0], and then knowing that the
+        next player must have a card with cardColor[1].
+        
+        Similarly, if we measure qubit 0 and read 1, qubit 1 must have the
+        bit 0: the original player receives cardColor[1] and then knows that
+        the next player has cardColor[0].
         """
-        knownColor = [color]
-        knownType = [self.getType()]
-        return card.Card(knownColor, knownType, isEntangled=True)
+        # use entanglement to emulate card color entanglement
+        qc = QuantumCircuit(2, 1)
+        qc.h(0)
+        qc.x(1)
+        qc.cx(0, 1)
+        qc.measure(0, 0)
+        backend = Aer.get_backend('aer_simulator')
+        counts = execute(qc, backend, shots=1024).result().get_counts(qc)
+        topBitString = heapq.nlargest(1, counts.items(), key=itemgetter(1))[0][0]
+
+        currCardColor = None
+        nextCardColor = None
+        if topBitString == '0':
+            currCardColor = cardColor[0]
+            nextCardColor = cardColor[1]
+        elif topBitString == '1':
+            currCardColor = cardColor[1]
+            nextCardColor = cardColor[0]
+        else:
+            assert False
+
+        # the first player already "measured" their card
+        currCardType = []
+        self.addType(currCardType, False)
+
+        # the next player has not "measured" their card yet
+        nextCardType = []
+        self.addType(nextCardType, False)
+        
+        return ((currCardColor, currCardType), \
+            card.Card([nextCardColor], nextCardType, isEntangled=True))
