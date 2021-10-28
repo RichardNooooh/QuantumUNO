@@ -208,7 +208,7 @@ def validNumInput(outString, lowerLimit, upperLimit):
 # Starting point of the program
 if __name__ == "__main__":
     clear_console()
-    print("````````````````````````````````````````````````````````````````````````````````")
+    print("--------------------------------------------------------------------------------")
     print("|                                                                              |")
     print("|                  ██████╗ ██╗   ██╗███╗   ██╗ ██████╗                         |")
     print("|                 ██╔═══██╗██║   ██║████╗  ██║██╔═══██╗                        |")
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     print("|                 ╚██████╔╝╚██████╔╝██║ ╚████║╚██████╔╝                        |")
     print("|                  ╚══▀▀═╝  ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝                         |")
     print("|                                                                              |")
-    print("````````````````````````````````````````````````````````````````````````````````")
+    print("--------------------------------------------------------------------------------")
     print("Welcome to QUNO - A Quantum-based UNO Console Game")
     print("     Developed by Abdullah Assaf, Emily Padilla, and Richard Noh")
     print("")
