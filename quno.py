@@ -1,4 +1,5 @@
 import os
+import sys
 import platform
 import player
 
@@ -23,16 +24,39 @@ class Game:
         for i in range(numPlayers):
             self.players.append(player.Player(i))
 
+
+    def validPlayInput(self, outString, currentPlayer):
+        givenInput = ""
+        while True:   # TODO add an exception for entangled cards
+            givenInput = input(outString)
+            if givenInput.isnumeric() and 0 <= int(givenInput) < len(currentPlayer.cards):
+                cardSelectionIndex = int(givenInput)
+                playedCard = currentPlayer.cards[cardSelectionIndex]
+                # TODO check that the top of played pile matches the known card fields
+                return playedCard
+            elif givenInput.lower() == "d" or givenInput.lower() == "deck":
+                print("NOT IMPLEMENTED DECK CARD RETRIEVAL")
+                return None #TODO
+            outString = "   Please enter in a valid card number, or \"deck\" to retrieve the top deck card."
+
+
     def play_turn(self):
+        # Display starting UI
         print("Player " + str(self.playerIndex + 1) + ", it's your turn.")
         currentPlayer = self.players[self.playerIndex]
         print(currentPlayer)
-        # TODO check that the top of played pile matches the known card fields
-        cardSelectionIndex = int(input("Select a Card! (0 - " + str(len(currentPlayer.cards) - 1) + "): "))
-        playedCard = currentPlayer.cards[cardSelectionIndex]
-        # TODO add an exception for entangled cards
+
+        # Receive input
+        playedCard = self.validPlayInput("Select a Card from 0 to " + str(len(currentPlayer.cards) - 1) \
+            + ", or type \"d\" to play the top deck card.")
+        
+        
+        
+
+
+        
         topOfPlayedPile = playedCard.measure()
-        playedCard.action()
+        # playedCard.action()
 
         # Check win condition
         if len(currentPlayer.cards) == 0:
@@ -56,6 +80,7 @@ class Game:
 
     def win(self):
         print("CONGRATULATIONS! YOU WON, PLAYER " + str(self.playerIndex + 1) + "!")
+        sys.exit()
 
     def start_game(self):
         self.play_turn()
@@ -67,7 +92,7 @@ def clear_console():
     else:
         os.system("clear") # Linux/Mac
 
-def validInput(outString, lowerLimit, upperLimit):
+def validNumInput(outString, lowerLimit, upperLimit):
     isValid = False
     givenInput = ""
     while not isValid:
@@ -97,7 +122,7 @@ if __name__ == "__main__":
     print("     Developed by Abdullah Assaf, Emily Padilla, and Richard Noh")
     print("     For TODO...")
     print("")
-    playerTotal = validInput("To start the game, please enter in the number of players for this game of QUNO: ", 3, 9)
+    playerTotal = validNumInput("To start the game, please enter in the number of players for this game of QUNO: ", 3, 9)
     print("Before the game starts, please decide amongst yourselves who will be player\n1, 2, and etc.")
     input("Once you have decided, please press Enter:")
 

@@ -1,6 +1,8 @@
 from qiskit import QuantumCircuit, QuantumRegister, ClassicalRegister, Aer, execute
 from qiskit.visualization import plot_histogram, plot_state_qsphere, plot_bloch_multivector, plot_bloch_vector
 from enum import Enum, auto
+import heapq
+from operator import itemgetter
 
 import player, quno
 import numpy as np
@@ -35,11 +37,11 @@ class Type(Enum):
     NUM_NINE        = 8      # 1000
     
     # Special Quantum Cards
-    MAKE_ENTANGLED  = 9      # 1000
+    MAKE_ENTANGLED  = 9      # 1001
     ADD_PHASE       = 10     # 1010
 
     # "Super Special" Quantum Card
-    ENTANGLED       = 11     # 1001
+    ENTANGLED       = 11     # 1011
 
 
 class Card:
@@ -64,33 +66,38 @@ class Card:
     """
 
     @classmethod
-    def multiFlip(self, qc, q_controls, q_target): #TODO documentation; copied directly from multiplication.ipynb
-        # multi-qubit Toffoli: applies a flip (NOT gate) to the target if all controls are 1
-        # qc is a quantum circuit
-        # q_controls is the quantum register of the controlling qubits
-        # q_target is the quantum register of the target qubit
-        qc.h(q_target)
-        Card.multiPhase(qc, q_controls+[q_target], np.pi)
-        qc.h(q_target)
-
+    def recCZa(self, qc, a, Cr, Tr): # TODO add documentation here
+        if len(Cr)<=1:
+            if len(Cr)==1:          #if only 1 control bit, apply the C-gate
+                qc.cu1(np.pi*a,Cr[0],Tr)
+            else:                   #if no control bits, just apply the gate
+                qc.u1(np.pi*a,Tr)
+        else:
+            nn=len(Cr)
+            #apply C-sqrt(U)
+            Card.recCZa(qc,a/2,[Cr[nn-1]],Tr)
+        
+            #recursively apply CCNot
+            qc.h(Cr[nn-1])
+            Card.recCZa(qc,1,Cr[0:nn-1],Cr[nn-1])
+            qc.h(Cr[nn-1])
+            
+            #apply C-sqrt(U dg)
+            Card.recCZa(qc,-a/2,[Cr[nn-1]],Tr)
+            
+            #recursively apply CCNot
+            qc.h(Cr[nn-1])
+            Card.recCZa(qc,1,Cr[0:nn-1],Cr[nn-1])
+            qc.h(Cr[nn-1])
+            
+            #recursivle apply CC-sqrt(U)
+            Card.recCZa(qc,a/2,Cr[0:nn-1],Tr)
 
     @classmethod
-    def multiPhase(self, qc, q, theta):
-        # multi-qubit controlled phase: applies a phase factor exp(i*theta) if all the qubits are 1.
-        # qc is a quantum circuit
-        # q is a quantum register in qc
-        # theta is a float
-        if len(q) == 1:
-            qc.u1(theta, q[0])
-        elif len(q) == 2:
-            qc.cu1(theta, q[0], q[1])
-        else:
-            qc.cu1(theta/2, q[1], q[0])        
-            Card.multiFlip(qc, q[2:], q[1])
-            qc.cu1(-theta/2, q[1], q[0])
-            Card.multiFlip(qc, q[2:], q[1])
-            Card.multiPhase(qc, [q[0]]+q[2:], theta/2)
-
+    def recTof(self, qc, Cr, Tr):
+        qc.h(Tr)
+        Card.recCZa(qc,1,Cr,Tr)
+        qc.h(Tr)
 
     def initialize_qc(self):
         """ Initializes the internal quantum circuit to the knownColors/knownTypes
@@ -102,19 +109,26 @@ class Card:
         of the color and type of the card state.
 
         """
-        n = len(self.knownColor)
-        for i in range(n):
+        M = len(self.knownColor)
+        toffoliQC = QuantumCircuit(7)
+        Card.recTof(toffoliQC, toffoliQC.qubits[1:7], toffoliQC.qubits[0])
+
+        for i in range(M):
             stateColor = self.knownColor[i]
             stateType = self.knownType[i]
             stateBinaryStr = np.binary_repr(stateColor.value, width=2) + np.binary_repr(stateType.value, width=4)
             xGateIndices = []
             for j in range(len(stateBinaryStr)):
-                if stateBinaryStr[j] == '1':
-                    xGateIndices.append(j)
+                if stateBinaryStr[j] == '0':
+                    xGateIndices.append(j+1)
             
-            self.qc.x(xGateIndices)
-            Card.multiFlip((self.qc), (self.qc.qubits[1:]), (self.qc.qubits[0]))
-            self.qc.x(xGateIndices)
+            if (len(xGateIndices) > 0):
+                self.qc.x(xGateIndices)
+
+            self.qc += toffoliQC
+
+            if (len(xGateIndices) > 0):
+                self.qc.x(xGateIndices)
 
 
     def __init__(self, colors, types, isEntangled=False): #TODO allow for an empty constructor for Entangled cards
@@ -131,12 +145,7 @@ class Card:
               "ERROR in Card.__init__() - The length of 'colors' and 'types' must be greater than 0."
         
         # Quantum properties
-        # self.qOutputRegister = QuantumRegister(1)
-        # self.qColorRegister = QuantumRegister(2)
-        # self.qTypeRegister = QuantumRegister(4)
-        # self.cColorRegister = ClassicalRegister(2)
-        # self.cTypeRegister = ClassicalRegister(4)
-        self.qc = QuantumCircuit(7, 6) # 1 output + 2 color + 4 type
+        self.qc = QuantumCircuit(7) # 1 output + 2 color + 4 type
         self.wasMeasured = False
 
         # Known properties
@@ -151,75 +160,76 @@ class Card:
         
         Since a card's true state is represented by a quantum circuit,
         we need to measure the entire quantum system to determine the true
-        color and type.
+        color and type. This card's quantum circuit stores an oracle.
+        In order to find the true values of the card, we must use
+        Grover's algorithm for M = 'len(self.knownColor)' solutions.
+
         Whenever a measurement is done, we will get an array of hits corresponding
         to each bitstring. The first two bits is the color register, while the
         last four bits are the type register. Interpreting these bits in
         decimal will give us the color/type, after mapping the numbers to
         the Color and Type enums.
+
         If there are multiple nontrivial measurement results, pick the one that
         had the most number of hits.
         Before this method returns:
             Returns a tuple (Color, Type) of the result,
             Sets the knownCard and knownType fields to the result, and
             Sets wasMeasured to True.
-        """ # TODO use grover's algo
-        self.qc.measure(self.qColorRegister, self.cColorRegister)
-        self.qc.measure(self.qTypeRegister, self.cTypeRegister)
-        backend = Aer.get_backend('qasm_simulator')
-        counts = execute(self.qc,backend, shots=1024).result().get_counts(self.qc)
-        lAnswer = [(k[::-1],v) for k,v in counts.items()]
-        lAnswer.sort(key = lambda x: x[1], reverse=True)
-        Y = []
+        """
+        # W Circuit
+        W = QuantumCircuit(7)
 
-        #gather results and interpret them into decimal form
-        for k, v in lAnswer: 
-            Y.append([ int(c) for c in k if c != ' '])
-        colorVal = ''
-        for i in range(2):
-            colorVal = str(Y[0][i]) + colorVal
-        colorVal = int(colorVal, 2)
-        typeVal = ''
-        for i in range(2, 5):
-            typeVal = str(Y[0][i]) + typeVal
-        typeVal = int(typeVal, 2)
+        W.h(W.qubits[1:7])
+        W.x(W.qubits[1:7])
+
+        Card.recCZa(W, 1, W.qubits[2:7], W.qubits[1])
+
+        W.x(W.qubits[1:7])
+        W.h(W.qubits[1:7])
         
-        if colorVal == Color.RED.value:
-            self.knownColor[0] = (Color.RED)
-            measuredColor = Color.RED
-            print("we now know it's red")
-        elif colorVal == Color.BLUE.value:
-            print(Color.BLUE)
-            self.knownColor[0] = (Color.BLUE)
-            measuredColor = Color.BLUE
-            print("we now know it's blue")
-        elif colorVal == Color.YELLOW.value:
-            self.knownColor[0] = (Color.YELLOW)
-            measuredColor = Color.YELLOW
-            print("we now know it's yellow")
-        else:
-            self.knownColor[0] = (Color.GREEN)
-            measuredColor = Color.GREEN
-            print("we now know it's green")
+        # Looping constant R
+        M = len(self.knownColor)
+        R = int(np.floor(np.pi * (np.sqrt(2**6/M)) / 4))
 
-        if typeVal == Type.NORMAL.value:
-            self.knownType[0] = (Type.NORMAL)
-            measuredType = Type.NORMAL
-            print("we now know it's normal")
-        elif typeVal == Type.MAKE_ENTANGLED.value:
-            self.knownType[0] = (Type.MAKE_ENTANGLED)
-            measuredType = Type.NORMAL
-            print("we now know it's make_entangled")
-        elif typeVal == Type.ENTANGLED.value:
-            self.knownType[0] = (Type.ENTANGLED)
-            measuredType = Type.NORMAL
-            print("we now know it's entangled")
-        else:
-            self.knownType[0] = (Type.INTERFERENCE)
-            measuredType = Type.NORMAL
-            print("we now know it's interference")
-        self.wasMeasured = True
-        return (measuredColor, measuredType)
+        # Grover's Algorithm
+        measureQC = QuantumCircuit(7, 6)
+
+        measureQC.x(0)
+        measureQC.h(range(7))
+
+        for _ in range(R):
+            measureQC += self.qc
+            measureQC += W
+
+        measureQC.h(0)
+        measureQC.x(0)
+
+        for i in range(6):
+            measureQC.measure(i+1,i)
+
+        # Run it through the Aer Simulator
+        print("   Please wait, our Grover monkeys are doing a lot of quantum magic...")
+        backend = Aer.get_backend('aer_simulator')
+        counts = execute(measureQC, backend, shots=1024).result().get_counts(measureQC) # takes a hot second
+
+        # Look at the top M results
+        topBitStrings = dict(heapq.nlargest(M, counts.items(), key=itemgetter(1))).keys()
+        flippedBitStrings = []
+        for bitString in topBitStrings:
+            flippedBitStrings.append(bitString[::-1])
+
+        # Interpret Results
+        colors = []
+        types = []
+        for bitString in flippedBitStrings:
+            measuredColor = (int(bitString, 2) & 0b110000) >> 4
+            measuredType = int(bitString, 2) & 0b001111
+            
+            colors.append(Color(measuredColor))
+            types.append(Type(measuredType))
+        
+        return (colors, types)
         
 
     def action(self, nextPlayer, game):
@@ -239,22 +249,7 @@ class Card:
         assert type(game) is quno.Game, \
               "ERROR in Card.action() - game parameter is not a Game."
         
-        if len(self.knownType) == 1:
-            if self.knownType[0] == Type.MAKE_ENTANGLED:
-                print("it's make entangled")
-                #TODO: how to entangle this card object w/ other card?
-            elif self.knownType[0] == Type.ENTANGLED:
-                print("it's entangled")
-                self.qc.measure()
-            elif self.knownType[0] == Type.INTERFERENCE:
-                self.qc.ry(np.pi/2,self.qColorRegister[0])  
-
-            # INCOMPLETE BS DOWN HERE, EITHER FIX OR REMOVE
-            #calculate applyNum = floor(interferenceCount / 4)
-            #interferenceCount += 1;
-            #applyNum = np.floor(interferenceCount/4)
-            # apply ry(pi/4) to q[1] applyNum times
-            #self.qc.ry(np.pi/4, qColorRegister[1])
+        pass
 
 
     def __str__(self):
