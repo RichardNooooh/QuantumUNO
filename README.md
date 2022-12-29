@@ -7,7 +7,7 @@ superposition, entanglement, interference, and measurement.
 
 The quantum computing elements of this game are simulated with Qiskit's Aer Simulator.
 
-The details of these ideas and their implementation are in the project report.
+The details of these ideas and their implementation are in the [project report](./QUNO%20Report.pdf). The code is also well-documented.
 
 ## How to Play
 
